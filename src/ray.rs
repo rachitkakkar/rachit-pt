@@ -1,16 +1,16 @@
-// use glam::{DVec4A};
+use glam::DVec3;
 
-// pub struct Ray {
-//   pub origin: DVec4A,
-//   pub direction: DVec4A,
-// }
+pub struct Ray {
+  pub origin: DVec3,
+  pub direction: DVec3,
+}
 
-// impl Ray {
-//   pub fn new(origin: DVec4A, direction: DVec4A) -> Ray {
-//     Ray { origin, direction }
-//   }
+impl Ray {
+  pub fn new(origin: DVec3, direction: DVec3) -> Ray {
+    Ray { origin, direction }
+  }
 
-//   pub fn at(&self, t: f64) -> DVec4A {
-//     self.origin + self.direction * t
-//   }
-// }
+  pub fn at(&self, t: f64) -> DVec3 {
+    self.origin + self.direction * t
+  }
+}

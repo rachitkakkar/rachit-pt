@@ -1,28 +1,6 @@
 use glam::{DVec3, UVec2};
 use image::ImageBuffer;
-
-/* Structure to represent a Ray */
-pub struct Ray {
-  pub origin: DVec3,
-  pub direction: DVec3,
-}
-
-impl Ray {
-  pub fn new(origin: DVec3, direction: DVec3) -> Ray {
-    Ray { origin, direction }
-  }
-
-  pub fn at(&self, t: f64) -> DVec3 {
-    self.origin + self.direction * t
-  }
-}
-
-/* Structures to represent Objects */
-pub struct Intersection {
-  pub location: DVec3,
-  pub normal: DVec3,
-  pub t: f64
-}
+use pt::geometries::Ray;
 
 fn hit_sphere(center: DVec3, radius: f64, ray: &Ray) -> bool {
   let oc: DVec3 = center - ray.origin;

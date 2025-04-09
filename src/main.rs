@@ -1,15 +1,19 @@
 use glam::{DVec3, UVec2};
 use image::ImageBuffer;
-use pt::geometries::Ray;
+use pt::geometries::{Intersection, Object, Ray, Sphere};
 
-fn hit_sphere(center: DVec3, radius: f64, ray: &Ray) -> bool {
-  let oc: DVec3 = center - ray.origin;
-  let a: f64 = ray.direction.dot(ray.direction);
-  let b: f64 = -2.0 * ray.direction.dot(oc);
-  let c: f64 = oc.dot(oc) - radius * radius;
-  let discriminant: f64 = b * b - 4.0 * a * c;
+fn intersects_world(objects: &Vec<Box<dyn Object>>, ray: &Ray) -> bool {
+  let mut closest_object: Option<Intersection> = None;
+  let mut closest_distance: f64 = f64::MAX;
 
-  return discriminant >= 0.0;
+  for obj in objects.iter() {
+    if let Some(intersection) = obj.intersects(ray, -1.0, closest_distance) {
+      closest_distance = intersection.t;
+      closest_object = Some(intersection);
+    }
+  }
+
+  closest_object.is_some()
 }
 
 /* Set-up Scene and render Image */
@@ -18,6 +22,10 @@ fn main() {
   let dimensions: UVec2 = UVec2::new(800, 600);
   let mut buffer: ImageBuffer<image::Rgb<u8>, Vec<u8>> = ImageBuffer::new(dimensions.x, dimensions.y);
 
+  // Scene
+  let mut objects: Vec<Box<dyn Object>> = Vec::new();
+  objects.push(Box::new(Sphere{ center: DVec3::new(0.0, 0.0, -1.0), radius: 0.5 }));
+  
   // Camera
   let focal_length: f64 = 1.0;
   let center: DVec3 = DVec3::new(0.0, 0.0, 0.0);
@@ -29,7 +37,7 @@ fn main() {
     (center - DVec3::new(0.0, 0.0, focal_length) - u/2.0 - v/2.0) 
     + 0.5 * (delta_u + delta_v);
 
-  // Write a gradient
+  // Write an image
   for y in 0..dimensions.y {
     for x in 0..dimensions.x {
       let ray: Ray = Ray::new(
@@ -38,13 +46,14 @@ fn main() {
       );
       
       let color: DVec3;
-      if hit_sphere(DVec3::new(0.0, 0.0, -1.0), 0.5, &ray) {
+      if intersects_world(&objects, &ray) {
         color = DVec3::new(255.0, 0.0, 0.0);
       } else {
         let a: f64 = 0.5 * (ray.direction.normalize().y + 1.0);
         color = (a)*DVec3::new(1.0, 1.0, 1.0) + (1.0-a)*DVec3::new(0.5, 0.7, 1.0);
       }
 
+      // Write pixel to image
       let r: u8 = (255.99 * color.x).clamp(0.0, 255.0) as u8;
       let g: u8 = (255.99 * color.y).clamp(0.0, 255.0) as u8;
       let b: u8 = (255.99 * color.z).clamp(0.0, 255.0) as u8;

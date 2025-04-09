@@ -18,13 +18,48 @@ impl Ray {
 
 /* Structure to represent an Intersection */
 pub struct Intersection {
-  pub occured: bool,
-  pub location: Option<DVec3>,
-  pub normal: Option<DVec3>,
-  pub t: Option<f64>
+  pub location: DVec3,
+  pub normal: DVec3,
+  pub t: f64
 }
 
 /* Structure(s) to represent an Objects */
-pub struct Object {
+pub trait Object {
+  fn intersects(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Intersection>;
+}
 
+pub struct Sphere {
+  pub center: DVec3,
+  pub radius: f64
+}
+
+impl Object for Sphere {
+  fn intersects(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Intersection> {
+    let oc: DVec3 = self.center - ray.origin;
+    let a: f64 = ray.direction.dot(ray.direction);
+    let h: f64 = ray.direction.dot(oc);
+    let c: f64 = oc.dot(oc) - self.radius * self.radius;
+    
+    let discriminant: f64 = h * h - a * c;
+    if discriminant < 0.0 {
+      return None;
+    }
+
+    let sqrtd: f64 = discriminant.sqrt();
+
+    // Find the nearest root that lies in the acceptable range.
+    let mut root: f64 = (h - sqrtd) / a;
+    if root <= t_min || t_max <= root {
+      root = (h + sqrtd) / a;
+      if root <= t_min || t_max <= root {
+        return None;
+      }
+    }
+
+    let t: f64 = root;
+    let p: DVec3 = ray.at(t);
+    let normal: DVec3 = (p - self.center) / self.radius;
+    return Some(Intersection{ location: p, normal: normal, t: t });
+
+  }
 }

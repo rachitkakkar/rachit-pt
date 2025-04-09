@@ -1,23 +1,60 @@
 use glam::{DVec3, UVec2};
-use image::ImageBuffer;
-use std::fmt::Write;
-use std::{thread, time};
+use std::{thread, time, fmt::Write};
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use rand::prelude::*;
+use image::ImageBuffer;
 use pt::geometries::{Intersection, Object, Ray, Sphere};
 
-fn intersects_world(objects: &Vec<Box<dyn Object>>, ray: &Ray) -> Option<Intersection> {
-  let mut closest_object: Option<Intersection> = None;
+// Generating a random vector on a hemisphere using the rejection method
+fn random_hemisphere_vector(normal: DVec3) -> DVec3 {
+  let mut rng = rand::rng();
+  let on_unit_sphere: DVec3;
+  loop {
+    let x: f64 = rng.random_range(-1.0..1.0);
+    let y: f64 = rng.random_range(-1.0..1.0);
+    let z: f64 = rng.random_range(-1.0..1.0);
+
+    let vector: DVec3 = DVec3::new(x, y, z);
+
+    // If the point is inside the unit sphere, accept it
+    if vector.length_squared() <= 1.0 {
+      on_unit_sphere = vector.normalize(); // Return the normalized unit vector
+      break;
+    }
+  }
+  if on_unit_sphere.dot(normal) > 0.0 {
+    return on_unit_sphere;
+  }
+  -on_unit_sphere
+}
+
+// Get the color illuminated by a particular ray given a scene
+fn intersects_world(objects: &Vec<Box<dyn Object>>, ray: &Ray, depth: i32) -> DVec3 {
+  if depth <= 0 {
+    return DVec3::new(0.0, 0.0, 0.0);
+  }
+
+  let mut closest_intersection: Option<Intersection> = None;
   let mut closest_distance: f64 = f64::MAX;
 
   for obj in objects.iter() {
     if let Some(intersection) = obj.intersects(ray, 0.0, closest_distance) {
       closest_distance = intersection.t;
-      closest_object = Some(intersection);
+      closest_intersection = Some(intersection);
     }
   }
 
-  closest_object
+  let mut color: DVec3 = DVec3::new(0.0, 0.0, 0.0);
+  if closest_intersection.is_some() {
+    let intersection: Intersection = closest_intersection.unwrap();
+    let direction: DVec3 = random_hemisphere_vector(intersection.normal);
+    color += 0.5 * (intersects_world(objects, &Ray::new(intersection.location, direction), depth-1));
+  } else {
+    let a: f64 = 0.5 * (ray.direction.normalize().y + 1.0);
+    color += (a) * DVec3::new(1.0, 1.0, 1.0) + (1.0-a)*DVec3::new(0.5, 0.7, 1.0);
+  }
+
+  color
 }
 
 /* Set-up Scene and render Image */
@@ -26,19 +63,18 @@ fn main() {
 
   // Create Image
   println!("[1/4] 📸 Creating image...");
-  thread::sleep(time::Duration::from_millis(800));
+  thread::sleep(time::Duration::from_millis(rand::rng().random::<u64>() % 1000));
   let dimensions: UVec2 = UVec2::new(800, 600);
   let mut buffer: ImageBuffer<image::Rgb<u8>, Vec<u8>> = ImageBuffer::new(dimensions.x, dimensions.y);
 
   // Scene
   println!("[2/4] 🔧 Constructing scene...");
-  thread::sleep(time::Duration::from_millis(800));
+  thread::sleep(time::Duration::from_millis(rand::rng().random::<u64>() % 1000));
   let mut objects: Vec<Box<dyn Object>> = Vec::new();
   objects.push(Box::new(Sphere{ center: DVec3::new(0.0, 0.0, -1.0), radius: 0.5 }));
   objects.push(Box::new(Sphere{ center: DVec3::new(0.0, -100.5, -1.0), radius: 100.0 }));
 
   // Camera
-  let samples: i32 = 100;
   let focal_length: f64 = 1.0;
   let center: DVec3 = DVec3::new(0.0, 0.0, 0.0);
   let u: DVec3 = DVec3::new(2.0 * (dimensions.x as f64 / dimensions.y as f64), 0.0, 0.0);
@@ -49,13 +85,17 @@ fn main() {
     (center - DVec3::new(0.0, 0.0, focal_length) - u/2.0 - v/2.0) 
     + 0.5 * (delta_u + delta_v);
 
+  // Set-up rendering settings
+  let samples: i32 = 10;
+  let max_bounces: i32 = 50;
+
   // Write an image
   let bar = ProgressBar::new(dimensions.y as u64);
   bar.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] ({eta})")
       .unwrap()
       .with_key("eta", |state: &ProgressState, w: &mut dyn Write | write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap())
       .progress_chars("#>-"));
-  println!("[3/4] 🖼️ Rendering...");
+  println!("[3/4] 🖼️  Rendering...");
   for y in 0..dimensions.y {
     for x in 0..dimensions.x {
       // Anti-aliasing
@@ -65,6 +105,7 @@ fn main() {
           rand::rng().random::<f64>() - 0.5, 
           rand::rng().random::<f64>() - 0.5, 0.0
         );
+
         let pixel_sample: DVec3 = upper_left 
           + ((x as f64 + offset.x) * delta_u) 
           + ((y as f64 + offset.y) * delta_v);
@@ -72,13 +113,8 @@ fn main() {
           center, 
           pixel_sample  - center
         );
-
-        if let Some(intersection) = intersects_world(&objects, &ray) {
-          color += 0.5 * (intersection.normal + DVec3::new(1.0, 1.0, 1.0));
-        } else {
-          let a: f64 = 0.5 * (ray.direction.normalize().y + 1.0);
-          color += (a) * DVec3::new(1.0, 1.0, 1.0) + (1.0-a)*DVec3::new(0.5, 0.7, 1.0);
-        }
+        
+        color += intersects_world(&objects, &ray, max_bounces);
       }
       color *= 1.0 / samples as f64;
 

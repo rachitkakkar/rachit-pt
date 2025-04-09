@@ -59,7 +59,6 @@ impl Object for Sphere {
     let t: f64 = root;
     let p: DVec3 = ray.at(t);
     let normal: DVec3 = (p - self.center) / self.radius;
-    return Some(Intersection{ location: p, normal: normal, t: t });
-
+    Some(Intersection{ location: p, normal: normal, t: t })
   }
 }

@@ -1,9 +1,9 @@
 use glam::{DVec3, UVec2};
 use std::{thread, time, fmt::Write};
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
+use pt::geometries::{Intersection, Object, Ray, Sphere};
 use rand::prelude::*;
 use image::ImageBuffer;
-use pt::geometries::{Intersection, Object, Ray, Sphere};
 use pt::materials;
 
 // Get the color illuminated by a particular ray given a scene
@@ -30,7 +30,7 @@ fn intersects_world(objects: &Vec<Box<dyn Object>>, ray: &Ray, depth: i32) -> DV
     color += 0.5 * (intersects_world(objects, &Ray::new(intersection.location, direction), depth-1));
   } else {
     let a: f64 = 0.5 * (ray.direction.normalize().y + 1.0);
-    color += (a) * DVec3::new(1.0, 1.0, 1.0) + (1.0-a)*DVec3::new(0.5, 0.7, 1.0);
+    color += (1.0-a) * DVec3::new(1.0, 1.0, 1.0) + (a)*DVec3::new(0.5, 0.7, 1.0);
   }
 
   color

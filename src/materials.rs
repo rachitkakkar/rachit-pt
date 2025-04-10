@@ -12,7 +12,6 @@ pub fn random_unit_vector() -> DVec3 {
 
 // Generating a random vector on a hemisphere using the rejection method
 pub fn random_hemisphere_vector(normal: DVec3) -> DVec3 {
-  
   let on_unit_sphere: DVec3;
   loop {
     let vector: DVec3 = random_unit_vector();

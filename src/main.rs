@@ -1,10 +1,9 @@
 use glam::{DVec3, UVec2};
 use std::{thread, time, fmt::Write};
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
-use pt::geometries::{Intersection, Object, Ray, Sphere};
+use pt::{geometries::{Intersection, Object, Ray, Sphere}, materials::{Lambertian, Metal}};
 use rand::prelude::*;
 use image::ImageBuffer;
-use pt::materials;
 
 // Get the color illuminated by a particular ray given a scene
 fn intersects_world(objects: &Vec<Box<dyn Object>>, ray: &Ray, depth: i32) -> DVec3 {
@@ -25,9 +24,10 @@ fn intersects_world(objects: &Vec<Box<dyn Object>>, ray: &Ray, depth: i32) -> DV
   let mut color: DVec3 = DVec3::new(0.0, 0.0, 0.0);
   if closest_intersection.is_some() {
     let intersection: Intersection = closest_intersection.unwrap();
-    // let direction: DVec3 = materials::random_hemisphere_vector(intersection.normal);
-    let direction: DVec3 = intersection.normal + materials::random_unit_vector();
-    color += 0.5 * (intersects_world(objects, &Ray::new(intersection.location, direction), depth-1));
+    if let Some(scatter) = intersection.material.scatter(ray, intersection) {
+      let (scattered, attenuation) = scatter;
+      color += attenuation * intersects_world(objects, &scattered, depth-1);
+    }
   } else {
     let a: f64 = 0.5 * (ray.direction.normalize().y + 1.0);
     color += (1.0-a) * DVec3::new(1.0, 1.0, 1.0) + (a)*DVec3::new(0.5, 0.7, 1.0);
@@ -50,8 +50,10 @@ fn main() {
   println!("[2/4] 🔧 Constructing scene...");
   thread::sleep(time::Duration::from_millis(rand::rng().random::<u64>() % 1000));
   let mut objects: Vec<Box<dyn Object>> = Vec::new();
-  objects.push(Box::new(Sphere{ center: DVec3::new(0.0, 0.0, -1.0), radius: 0.5 }));
-  objects.push(Box::new(Sphere{ center: DVec3::new(0.0, -100.5, -1.0), radius: 100.0 }));
+  objects.push(Box::new(Sphere::new(Lambertian::new(DVec3::new(0.1, 0.2, 0.5)), DVec3::new(0.0, 0.0, -1.2), 0.5)));
+  objects.push(Box::new(Sphere::new(Metal::new(DVec3::new(0.8, 0.8, 0.8), 0.5), DVec3::new(-1.0, 0.0, -1.0), 0.5)));
+  objects.push(Box::new(Sphere::new(Metal::new(DVec3::new(0.8, 0.6, 0.2), 0.5), DVec3::new(1.0, 0.0, -1.0), 0.5)));
+  objects.push(Box::new(Sphere::new(Lambertian::new(DVec3::new(0.8, 0.8, 0.0)), DVec3::new(0.0, -100.5, -1.0), 100.0)));
 
   // Camera
   let focal_length: f64 = 1.0;
@@ -65,7 +67,7 @@ fn main() {
     + 0.5 * (delta_u + delta_v);
 
   // Set-up rendering settings
-  let samples: i32 = 100;
+  let samples: i32 = 1000;
   let max_bounces: i32 = 50;
 
   // Write an image

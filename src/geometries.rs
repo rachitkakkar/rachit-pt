@@ -1,5 +1,7 @@
 use glam::DVec3;
 
+use crate::materials::Material;
+
 /* Structure to represent a Ray */
 pub struct Ray {
   pub origin: DVec3,
@@ -17,7 +19,8 @@ impl Ray {
 }
 
 /* Structure to represent an Intersection */
-pub struct Intersection {
+pub struct Intersection<'a> {
+  pub material: &'a dyn Material,
   pub location: DVec3,
   pub normal: DVec3,
   pub t: f64
@@ -28,12 +31,19 @@ pub trait Object {
   fn intersects(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Intersection>;
 }
 
-pub struct Sphere {
+pub struct Sphere<M: Material> {
+  pub material: M,
   pub center: DVec3,
   pub radius: f64
 }
 
-impl Object for Sphere {
+impl<M: Material> Sphere<M> {
+  pub fn new(material: M, center: DVec3, radius: f64) -> Sphere<M> {
+    Sphere { material, center, radius }
+  }
+}
+
+impl<M: Material> Object for Sphere<M> {
   fn intersects(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Intersection> {
     let oc: DVec3 = self.center - ray.origin;
     let a: f64 = ray.direction.dot(ray.direction);
@@ -59,6 +69,8 @@ impl Object for Sphere {
     let t: f64 = root;
     let p: DVec3 = ray.at(t);
     let normal: DVec3 = (p - self.center) / self.radius;
-    Some(Intersection{ location: p, normal: normal, t: t })
+    Some( Intersection { 
+      location: p, normal: normal, t: t, material: &self.material
+    })
   }
 }

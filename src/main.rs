@@ -4,29 +4,7 @@ use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use rand::prelude::*;
 use image::ImageBuffer;
 use pt::geometries::{Intersection, Object, Ray, Sphere};
-
-// Generating a random vector on a hemisphere using the rejection method
-fn random_hemisphere_vector(normal: DVec3) -> DVec3 {
-  let mut rng = rand::rng();
-  let on_unit_sphere: DVec3;
-  loop {
-    let x: f64 = rng.random_range(-1.0..1.0);
-    let y: f64 = rng.random_range(-1.0..1.0);
-    let z: f64 = rng.random_range(-1.0..1.0);
-
-    let vector: DVec3 = DVec3::new(x, y, z);
-
-    // If the point is inside the unit sphere, accept it
-    if vector.length_squared() <= 1.0 {
-      on_unit_sphere = vector.normalize(); // Return the normalized unit vector
-      break;
-    }
-  }
-  if on_unit_sphere.dot(normal) > 0.0 {
-    return on_unit_sphere;
-  }
-  -on_unit_sphere
-}
+use pt::materials;
 
 // Get the color illuminated by a particular ray given a scene
 fn intersects_world(objects: &Vec<Box<dyn Object>>, ray: &Ray, depth: i32) -> DVec3 {
@@ -38,7 +16,7 @@ fn intersects_world(objects: &Vec<Box<dyn Object>>, ray: &Ray, depth: i32) -> DV
   let mut closest_distance: f64 = f64::MAX;
 
   for obj in objects.iter() {
-    if let Some(intersection) = obj.intersects(ray, 0.0, closest_distance) {
+    if let Some(intersection) = obj.intersects(ray, 0.001, closest_distance) {
       closest_distance = intersection.t;
       closest_intersection = Some(intersection);
     }
@@ -47,7 +25,8 @@ fn intersects_world(objects: &Vec<Box<dyn Object>>, ray: &Ray, depth: i32) -> DV
   let mut color: DVec3 = DVec3::new(0.0, 0.0, 0.0);
   if closest_intersection.is_some() {
     let intersection: Intersection = closest_intersection.unwrap();
-    let direction: DVec3 = random_hemisphere_vector(intersection.normal);
+    // let direction: DVec3 = materials::random_hemisphere_vector(intersection.normal);
+    let direction: DVec3 = intersection.normal + materials::random_unit_vector();
     color += 0.5 * (intersects_world(objects, &Ray::new(intersection.location, direction), depth-1));
   } else {
     let a: f64 = 0.5 * (ray.direction.normalize().y + 1.0);
@@ -86,7 +65,7 @@ fn main() {
     + 0.5 * (delta_u + delta_v);
 
   // Set-up rendering settings
-  let samples: i32 = 10;
+  let samples: i32 = 100;
   let max_bounces: i32 = 50;
 
   // Write an image
@@ -118,10 +97,10 @@ fn main() {
       }
       color *= 1.0 / samples as f64;
 
-      // Write pixel to image (scale 0-1 to 0-255)
-      let r: u8 = (255.99 * color.x).clamp(0.0, 255.0) as u8;
-      let g: u8 = (255.99 * color.y).clamp(0.0, 255.0) as u8;
-      let b: u8 = (255.99 * color.z).clamp(0.0, 255.0) as u8;
+      // Write pixel to image (scale 0-1 to 0-255 and convert to linear to gamma 2)
+      let r: u8 = (255.99 * (color.x).sqrt()).clamp(0.0, 255.0) as u8;
+      let g: u8 = (255.99 * (color.y).sqrt()).clamp(0.0, 255.0) as u8;
+      let b: u8 = (255.99 * (color.z).sqrt()).clamp(0.0, 255.0) as u8;
 
       let pixel = buffer.get_pixel_mut(x, y);
       *pixel = image::Rgb([r, g, b]);

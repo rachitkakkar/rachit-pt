@@ -42,7 +42,9 @@ fn reflect(v: DVec3, n: DVec3) -> DVec3 {
 fn refract(uv: DVec3, n: DVec3, etai_over_etat: f64) -> Option<DVec3> {
   let cos_theta: f64 = (-uv).dot(n).min(1.0);
   let r_out_perp: DVec3 = etai_over_etat * (uv + cos_theta * n);
-  let r_out_parallel_sq: f64 = 1.0 - r_out_perp.length_squared();
+  let r_out_parallel_sq: f64 = (1.0 - r_out_perp.length_squared()).abs();
+  let r_out_parallel: DVec3 = -(r_out_parallel_sq.sqrt()) * n;
+  Some(r_out_perp + r_out_parallel)
   // if r_out_parallel_sq < 0.0 {
   //   None // Total internal reflection
   // } else {
@@ -162,7 +164,7 @@ impl Material for Dielectric {
       )
     };
 
-    if let Some(refracted) = refract(unit_direction, intersection.normal, ni_over_nt) {
+    if let Some(refracted) = refract(unit_direction, outward_normal, ni_over_nt) {
       let scattered_ray: Ray = Ray {
         origin: intersection.location,
         direction: refracted,

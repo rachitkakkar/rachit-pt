@@ -67,7 +67,7 @@ fn main() {
     + 0.5 * (delta_u + delta_v);
 
   // Set-up rendering settings
-  let samples: i32 = 1;
+  let samples: i32 = 100;
   let max_bounces: i32 = 50;
 
   // Write an image

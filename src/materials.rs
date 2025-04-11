@@ -54,7 +54,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-  fn scatter(&self, ray: &Ray, intersection: Intersection) -> Option<(Ray, DVec3)> {
+  fn scatter(&self, _ray: &Ray, intersection: Intersection) -> Option<(Ray, DVec3)> {
     let mut scatter_direction: DVec3 = random_hemisphere_vector(intersection.normal);
 
     // Check if the generated direction is degenerate
@@ -90,7 +90,8 @@ impl Metal {
 impl Material for Metal {
   fn scatter(&self, ray: &Ray, intersection: Intersection) -> Option<(Ray, DVec3)> {
     // Reflect the ray direction around the normal
-    let reflected = reflect(ray.direction.normalize(), intersection.normal);
+    let mut reflected = reflect(ray.direction.normalize(), intersection.normal);
+    reflected = reflected.normalize() + (self.fuzz * random_unit_vector());
 
     // Apply fuzz to the reflection direction
     // let random_offset = random_hemisphere_vector() * self.fuzz;

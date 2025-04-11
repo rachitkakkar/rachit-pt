@@ -39,6 +39,24 @@ fn reflect(v: DVec3, n: DVec3) -> DVec3 {
   v - 2.0 * v.dot(n) * n
 }
 
+fn refract(uv: DVec3, n: DVec3, etai_over_etat: f64) -> Option<DVec3> {
+  let cos_theta: f64 = (-uv).dot(n).min(1.0);
+  let r_out_perp: DVec3 = etai_over_etat * (uv + cos_theta * n);
+  let r_out_parallel_sq: f64 = 1.0 - r_out_perp.length_squared();
+  // if r_out_parallel_sq < 0.0 {
+  //   None // Total internal reflection
+  // } else {
+  //   let r_out_parallel = -(r_out_parallel_sq.sqrt()) * n;
+  //   Some(r_out_perp + r_out_parallel)
+  // }
+  
+}
+
+fn schlick(cosine: f64, refr_index: f64) -> f64 {
+  let r0: f64 = ((1.0 - refr_index) / (1.0 + refr_index)).powi(2);
+  r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+}
+
 pub trait Material {
   fn scatter(&self, ray: &Ray, intersection: Intersection) -> Option<(Ray, DVec3)>;
 }
@@ -64,6 +82,7 @@ impl Material for Lambertian {
     }
 
     // Create the scattered ray
+    // To-do: Refactor to use new
     let scattered_ray: Ray = Ray {
       origin: intersection.location,
       direction: scatter_direction,
@@ -106,5 +125,67 @@ impl Material for Metal {
       return Some((scattered_ray, self.albedo))
     }
     None
+  }
+}
+
+pub struct Dielectric {
+  pub refractive_index: f64, // Index of refraction (e.g., 1.5 for glass)
+}
+
+impl Dielectric {
+  pub fn new(refractive_index: f64) -> Dielectric {
+    Dielectric { refractive_index }
+  }
+}
+
+impl Material for Dielectric {
+  fn scatter(&self, ray: &Ray, intersection: Intersection) -> Option<(Ray, DVec3)> {
+    let attenuation: DVec3 = DVec3::splat(1.0); // No attenuation for dielectric (purely transparent)
+
+    let unit_direction: DVec3 = ray.direction.normalize();
+    let cos_theta: f64 = (-unit_direction).dot(intersection.normal).min(1.0);
+    let sin_theta: f64 = (1.0 - cos_theta * cos_theta).sqrt();
+
+    let (outward_normal, ni_over_nt, cosine) = if unit_direction.dot(intersection.normal) > 0.0 {
+      // Ray is inside the material
+      (
+        -intersection.normal,
+        self.refractive_index,
+        self.refractive_index * cos_theta,
+      )
+    } else {
+      // Ray is outside the material
+      (
+        intersection.normal,
+        1.0 / self.refractive_index,
+        cos_theta,
+      )
+    };
+
+    if let Some(refracted) = refract(unit_direction, intersection.normal, ni_over_nt) {
+      let scattered_ray: Ray = Ray {
+        origin: intersection.location,
+        direction: refracted,
+      };
+  
+      return Some((scattered_ray, attenuation));
+    }
+
+    None
+    // let cannot_refract: bool = ni_over_nt * sin_theta > 1.0;
+    // let reflect_prob: f64 = if cannot_refract {
+    //   1.0
+    // } else {
+    //   schlick(cosine, self.refractive_index)
+    // };
+
+    // let mut direction: DVec3 = if rand::random::<f64>() < reflect_prob {
+    //   reflect(unit_direction, intersection.normal)
+    // } else {
+    //   refract(unit_direction, outward_normal, ni_over_nt)?
+    // };
+    // direction -= intersection.normal * 0.1;
+
+
   }
 }

@@ -1,7 +1,7 @@
 use glam::{DVec3, UVec2};
 use std::{thread, time, fmt::Write};
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
-use pt::{geometries::{Intersection, Object, Ray, Sphere}, materials::{Lambertian, Metal}};
+use pt::{geometries::{Intersection, Object, Ray, Sphere}, materials::{Dielectric, Lambertian, Metal}};
 use rand::prelude::*;
 use image::ImageBuffer;
 
@@ -51,10 +51,10 @@ fn main() {
   thread::sleep(time::Duration::from_millis(rand::rng().random::<u64>() % 1000));
   let mut objects: Vec<Box<dyn Object>> = Vec::new();
   objects.push(Box::new(Sphere::new(Lambertian::new(DVec3::new(0.1, 0.2, 0.5)), DVec3::new(0.0, 0.0, -1.2), 0.5)));
-  objects.push(Box::new(Sphere::new(Metal::new(DVec3::new(0.8, 0.8, 0.8), 0.1), DVec3::new(-1.0, 0.0, -1.0), 0.5)));
+  objects.push(Box::new(Sphere::new(Dielectric::new(1.5), DVec3::new(-1.0, 0.0, -1.0), 0.5)));
   objects.push(Box::new(Sphere::new(Metal::new(DVec3::new(0.8, 0.6, 0.2), 0.2), DVec3::new(1.0, 0.0, -1.0), 0.5)));
   objects.push(Box::new(Sphere::new(Lambertian::new(DVec3::new(0.8, 0.8, 0.0)), DVec3::new(0.0, -100.5, -1.0), 100.0)));
-
+//DVec3::new(0.8, 0.8, 0.8)
   // Camera
   let focal_length: f64 = 1.0;
   let center: DVec3 = DVec3::new(0.0, 0.0, 0.0);
@@ -67,7 +67,7 @@ fn main() {
     + 0.5 * (delta_u + delta_v);
 
   // Set-up rendering settings
-  let samples: i32 = 10;
+  let samples: i32 = 1;
   let max_bounces: i32 = 50;
 
   // Write an image
@@ -100,9 +100,9 @@ fn main() {
       color *= 1.0 / samples as f64;
 
       // Write pixel to image (scale 0-1 to 0-255 and convert to linear to gamma 2)
-      let r: u8 = (255.99 * (color.x).sqrt()).clamp(0.0, 255.0) as u8;
-      let g: u8 = (255.99 * (color.y).sqrt()).clamp(0.0, 255.0) as u8;
-      let b: u8 = (255.99 * (color.z).sqrt()).clamp(0.0, 255.0) as u8;
+      let r: u8 = (255.0 * (color.x).sqrt()).clamp(0.0, 255.0) as u8;
+      let g: u8 = (255.0 * (color.y).sqrt()).clamp(0.0, 255.0) as u8;
+      let b: u8 = (255.0 * (color.z).sqrt()).clamp(0.0, 255.0) as u8;
 
       let pixel = buffer.get_pixel_mut(x, y);
       *pixel = image::Rgb([r, g, b]);

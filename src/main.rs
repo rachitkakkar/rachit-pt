@@ -51,10 +51,11 @@ fn main() {
   thread::sleep(time::Duration::from_millis(rand::rng().random::<u64>() % 1000));
   let mut objects: Vec<Box<dyn Object>> = Vec::new();
   objects.push(Box::new(Sphere::new(Lambertian::new(DVec3::new(0.1, 0.2, 0.5)), DVec3::new(0.0, 0.0, -1.2), 0.5)));
+  objects.push(Box::new(Sphere::new(Dielectric::new(1.00 / 1.33), DVec3::new(-1.0, 0.0, -1.0), 0.4)));
   objects.push(Box::new(Sphere::new(Dielectric::new(1.5), DVec3::new(-1.0, 0.0, -1.0), 0.5)));
   objects.push(Box::new(Sphere::new(Metal::new(DVec3::new(0.8, 0.6, 0.2), 0.2), DVec3::new(1.0, 0.0, -1.0), 0.5)));
   objects.push(Box::new(Sphere::new(Lambertian::new(DVec3::new(0.8, 0.8, 0.0)), DVec3::new(0.0, -100.5, -1.0), 100.0)));
-//DVec3::new(0.8, 0.8, 0.8)
+
   // Camera
   let focal_length: f64 = 1.0;
   let center: DVec3 = DVec3::new(0.0, 0.0, 0.0);
@@ -67,7 +68,7 @@ fn main() {
     + 0.5 * (delta_u + delta_v);
 
   // Set-up rendering settings
-  let samples: i32 = 100;
+  let samples: i32 = 1000;
   let max_bounces: i32 = 50;
 
   // Write an image

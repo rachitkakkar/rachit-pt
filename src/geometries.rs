@@ -20,10 +20,11 @@ impl Ray {
 
 /* Structure to represent an Intersection */
 pub struct Intersection<'a> {
-  pub material: &'a dyn Material,
   pub location: DVec3,
   pub normal: DVec3,
-  pub t: f64
+  pub t: f64,
+  pub material: &'a dyn Material,
+  pub front_face: bool,
 }
 
 /* Structure(s) to represent an Objects */
@@ -68,9 +69,16 @@ impl<M: Material> Object for Sphere<M> {
 
     let t: f64 = root;
     let p: DVec3 = ray.at(t);
-    let normal: DVec3 = (p - self.center) / self.radius;
+    let outward_normal: DVec3 = (p - self.center) / self.radius;
+    let front_face: bool = ray.direction.dot(outward_normal) < 0.0;
+    let normal: DVec3 = if front_face { 
+      outward_normal
+    } else { 
+      -outward_normal 
+    };
+
     Some( Intersection { 
-      location: p, normal: normal, t: t, material: &self.material
+      location: p, normal: normal, t: t, material: &self.material, front_face: front_face
     })
   }
 }

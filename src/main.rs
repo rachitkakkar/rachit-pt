@@ -57,14 +57,21 @@ fn main() {
   objects.push(Box::new(Sphere::new(Lambertian::new(DVec3::new(0.8, 0.8, 0.0)), DVec3::new(0.0, -100.5, -1.0), 100.0)));
 
   // Camera
-  let focal_length: f64 = 1.0;
-  let center: DVec3 = DVec3::new(0.0, 0.0, 0.0);
-  let u: DVec3 = DVec3::new(2.0 * (dimensions.x as f64 / dimensions.y as f64), 0.0, 0.0);
-  let v: DVec3 = DVec3::new(0.0, -2.0, 0.0);
+  let vfov: f64 = 25.0;
+  let vup: DVec3 = DVec3::new(0.0, 1.0, 0.0);
+  let center: DVec3 = DVec3::new(-1.0, 1.0, 1.0);
+  let direction: DVec3 = DVec3::new(0.0, 0.0, -1.0);
+
+  let focal_length: f64 = (center - direction).length();
+  let viewport_height: f64 = 2.0 * ((vfov * std::f64::consts::PI / 360.0)).tan() * focal_length;
+  let viewport_width: f64 = viewport_height * (dimensions.x as f64 / dimensions.y as f64);
+  let w: DVec3 = (center - direction).normalize();
+  let u: DVec3 = viewport_width * vup.cross(w).normalize(); 
+  let v: DVec3 = viewport_height * -w.cross(u / viewport_width);
   let delta_u: DVec3 = u / dimensions.x as f64;
   let delta_v: DVec3 = v / dimensions.y as f64;
   let upper_left: DVec3 = 
-    (center - DVec3::new(0.0, 0.0, focal_length) - u/2.0 - v/2.0) 
+    (center - (focal_length * w) - u / 2.0 - v / 2.0) 
     + 0.5 * (delta_u + delta_v);
 
   // Set-up rendering settings

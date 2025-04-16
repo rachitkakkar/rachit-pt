@@ -107,10 +107,6 @@ impl Material for Metal {
     let mut reflected = reflect(ray.direction.normalize(), intersection.normal);
     reflected = reflected.normalize() + (self.fuzz * random_unit_vector());
 
-    // Apply fuzz to the reflection direction
-    // let random_offset = random_hemisphere_vector() * self.fuzz;
-    // let scattered_direction = reflected + random_offset;
-
     // Ensure the reflected ray is in the correct direction (not backwards)
     if reflected.dot(intersection.normal) > 0.0 {
       let scattered_ray: Ray = Ray {

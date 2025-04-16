@@ -1,5 +1,6 @@
 use rand::prelude::*;
 use glam::DVec3;
+
 use crate::geometries::{Intersection, Ray};
 
 pub fn random_unit_vector() -> DVec3 {
@@ -93,7 +94,6 @@ pub struct Metal {
 }
 
 impl Metal {
-  // Constructor for Metal
   pub fn new(albedo: DVec3, fuzz: f64) -> Metal {
     // Ensure fuzz is between 0.0 and 1.0 for realistic behavior
     let fuzz: f64 = if fuzz < 1.0 { fuzz } else { 1.0 };

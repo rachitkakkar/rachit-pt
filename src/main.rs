@@ -1,57 +1,15 @@
+// External crates
 use glam::{DVec3, UVec2};
 use std::{thread, time, fmt::Write};
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
-use pt::{geometries::{Intersection, Object, Ray, Sphere}, materials::{Dielectric, Lambertian, Metal}};
 use rand::prelude::*;
 use image::ImageBuffer;
 
-fn generate_random_scene() -> Vec<Box<dyn Object>> {
-  let mut objects: Vec<Box<dyn Object>> = Vec::new();
-
-  // Ground material (Lambertian)
-  let ground_material: Lambertian = Lambertian::new(DVec3::new(0.5, 0.5, 0.5));
-  objects.push(Box::new(Sphere::new(ground_material, DVec3::new(0.0, -1000.0, 0.0), 1000.0)));
-
-  // Adding random spheres to the scene
-  for a in -11..11 {
-    for b in -11..11 {
-      let choose_mat: f64 = rand::random::<f64>();  // Equivalent to random_double()
-      let center: DVec3 = DVec3::new(a as f64 + 0.9 * rand::random::<f64>(), 0.2, b as f64 + 0.9 * rand::random::<f64>());
-
-      if (center - DVec3::new(4.0, 0.2, 0.0)).length() > 0.9 {
-        if choose_mat < 0.8 {
-          // Lambertian material (diffuse)
-          let albedo: DVec3 = DVec3::new(rand::random::<f64>(), rand::random::<f64>(), rand::random::<f64>()) * DVec3::new(rand::random::<f64>(), rand::random::<f64>(), rand::random::<f64>());
-          objects.push(Box::new(Sphere::new(Lambertian::new(albedo), center, 0.2)));
-
-        } else if choose_mat < 0.95 {
-          // Metal material
-          let albedo: DVec3 = DVec3::new(rand::random::<f64>(), rand::random::<f64>(), rand::random::<f64>()) * DVec3::new(0.5, 1.0, 0.5);
-          let fuzz: f64 = rand::random::<f64>();  // You can control the fuzz range similarly
-          objects.push(Box::new(Sphere::new(Metal::new(albedo, fuzz), center, 0.2)));
-
-        } else {
-          // Dielectric material (glass)
-          objects.push(Box::new(Sphere::new(Dielectric::new(1.5), center, 0.2)));
-
-        }
-
-      }
-    }
-  }
-
-  // Adding specific spheres to the objects list
-  let material1: Dielectric = Dielectric::new(1.5);
-  objects.push(Box::new(Sphere::new(material1, DVec3::new(0.0, 1.0, 0.0), 1.0)));
-
-  let material2: Lambertian = Lambertian::new(DVec3::new(0.4, 0.2, 0.1));
-  objects.push(Box::new(Sphere::new(material2, DVec3::new(-4.0, 1.0, 0.0), 1.0)));
-
-  let material3: Metal = Metal::new(DVec3::new(0.7, 0.6, 0.5), 0.0);
-  objects.push(Box::new(Sphere::new(material3, DVec3::new(4.0, 1.0, 0.0), 1.0)));
-
-  objects
-}
+// Project modules
+use pt::{ 
+  geometries::{Intersection, Object, Ray},
+  scene::{generate_random_scene, Camera, Scene},
+};
 
 // Get the color illuminated by a particular ray given a scene
 fn intersects_world(objects: &Vec<Box<dyn Object>>, ray: &Ray, depth: i32) -> DVec3 {
@@ -84,43 +42,34 @@ fn intersects_world(objects: &Vec<Box<dyn Object>>, ray: &Ray, depth: i32) -> DV
   color
 }
 
-/* Set-up Scene and render Image */
+// Set-up Scene and render Image
 fn main() {
   println!("rachit-pt: Rendering image to output.png\n");
 
   // Create Image
   println!("[1/4] 📸 Creating image...");
   thread::sleep(time::Duration::from_millis(rand::rng().random::<u64>() % 1000));
-  let dimensions: UVec2 = UVec2::new(800, 600);
-  let mut buffer: ImageBuffer<image::Rgb<u8>, Vec<u8>> = ImageBuffer::new(dimensions.x, dimensions.y);
+  let dimensions: UVec2 = UVec2::new(1600, 400);
+  let mut buffer: ImageBuffer<image::Rgb<u8>, Vec<u8>> = 
+    ImageBuffer::new(dimensions.x, dimensions.y);
 
   // Scene
   println!("[2/4] 🔧 Constructing scene...");
   thread::sleep(time::Duration::from_millis(rand::rng().random::<u64>() % 1000));
-  // let mut objects: Vec<Box<dyn Object>> = Vec::new();
-  // objects.push(Box::new(Sphere::new(Lambertian::new(DVec3::new(0.1, 0.2, 0.5)), DVec3::new(0.0, 0.0, -1.2), 0.5)));
-  // objects.push(Box::new(Sphere::new(Dielectric::new(1.00 / 1.33), DVec3::new(-1.0, 0.0, -1.0), 0.4)));
-  // objects.push(Box::new(Sphere::new(Dielectric::new(1.5), DVec3::new(-1.0, 0.0, -1.0), 0.5)));
-  // objects.push(Box::new(Sphere::new(Metal::new(DVec3::new(0.8, 0.6, 0.2), 0.2), DVec3::new(1.0, 0.0, -1.0), 0.5)));
-  // objects.push(Box::new(Sphere::new(Lambertian::new(DVec3::new(0.8, 0.8, 0.0)), DVec3::new(0.0, -100.5, -1.0), 100.0)));
-  let objects:Vec<Box<dyn Object>> = generate_random_scene();
+  let scene: Scene = generate_random_scene();
 
   // Camera
-  let vfov: f64 = 20.0;
-  let vup: DVec3 = DVec3::new(0.0, 1.0, 0.0);
-  let center: DVec3 = DVec3::new(13.0, 2.0, 3.0);
-  let direction: DVec3 = DVec3::new(0.0, 0.0, 0.0);
-
-  let focal_length: f64 = (center - direction).length();
-  let viewport_height: f64 = 2.0 * ((vfov * std::f64::consts::PI / 360.0)).tan() * focal_length;
+  let camera: Camera = scene.camera;
+  let focal_length: f64 = (camera.center - camera.direction).length();
+  let viewport_height: f64 = 2.0 * ((camera.vfov * std::f64::consts::PI / 360.0)).tan() * focal_length;
   let viewport_width: f64 = viewport_height * (dimensions.x as f64 / dimensions.y as f64);
-  let w: DVec3 = (center - direction).normalize();
-  let u: DVec3 = viewport_width * vup.cross(w).normalize(); 
+  let w: DVec3 = (camera.center - camera.direction).normalize();
+  let u: DVec3 = viewport_width * camera.vup.cross(w).normalize(); 
   let v: DVec3 = viewport_height * -w.cross(u / viewport_width);
   let delta_u: DVec3 = u / dimensions.x as f64;
   let delta_v: DVec3 = v / dimensions.y as f64;
   let upper_left: DVec3 = 
-    (center - (focal_length * w) - u / 2.0 - v / 2.0) 
+    (camera.center - (focal_length * w) - u / 2.0 - v / 2.0) 
     + 0.5 * (delta_u + delta_v);
 
   // Set-up rendering settings
@@ -148,11 +97,11 @@ fn main() {
           + ((x as f64 + offset.x) * delta_u) 
           + ((y as f64 + offset.y) * delta_v);
         let ray: Ray = Ray::new(
-          center, 
-          pixel_sample  - center
+          camera.center, 
+          pixel_sample  - camera.center
         );
         
-        color += intersects_world(&objects, &ray, max_bounces);
+        color += intersects_world(&scene.objects, &ray, max_bounces);
       }
       color *= 1.0 / samples as f64;
 

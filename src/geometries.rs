@@ -1,8 +1,6 @@
 use glam::DVec3;
-
 use crate::materials::Material;
 
-/* Structure to represent a Ray */
 pub struct Ray {
   pub origin: DVec3,
   pub direction: DVec3,
@@ -18,7 +16,7 @@ impl Ray {
   }
 }
 
-/* Structure to represent an Intersection */
+// Structure to represent an Intersection
 pub struct Intersection<'a> {
   pub location: DVec3,
   pub normal: DVec3,
@@ -27,7 +25,7 @@ pub struct Intersection<'a> {
   pub front_face: bool,
 }
 
-/* Structure(s) to represent an Objects */
+// Structure(s) to represent an Objects
 pub trait Object {
   fn intersects(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Intersection>;
 }

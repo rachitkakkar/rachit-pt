@@ -78,10 +78,10 @@ impl Material for Lambertian {
 
     // Create the scattered ray
     // To-do: Refactor to use new
-    let scattered_ray: Ray = Ray {
-      origin: intersection.location,
-      direction: scatter_direction,
-    };
+    let scattered_ray: Ray = Ray::new(
+      intersection.location,
+      scatter_direction,
+    );
 
     Some((scattered_ray, self.albedo))
   }
@@ -109,10 +109,10 @@ impl Material for Metal {
 
     // Ensure the reflected ray is in the correct direction (not backwards)
     if reflected.dot(intersection.normal) > 0.0 {
-      let scattered_ray: Ray = Ray {
-        origin: intersection.location,
-        direction: reflected,
-      };
+      let scattered_ray: Ray = Ray::new(
+        intersection.location,
+        reflected,
+      );
       return Some((scattered_ray, self.albedo))
     }
     None
@@ -161,10 +161,10 @@ impl Material for Dielectric {
       refract(unit_direction, intersection.normal, ni_over_nt)
     };
 
-    let scattered_ray: Ray = Ray {
-      origin: intersection.location,
-      direction: direction,
-    };
+    let scattered_ray: Ray = Ray::new(
+      intersection.location,
+      direction,
+    );
     return Some((scattered_ray, attenuation));
   }
 }

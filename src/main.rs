@@ -57,7 +57,7 @@ fn main() {
   objects.push(Box::new(Sphere::new(Lambertian::new(DVec3::new(0.8, 0.8, 0.0)), DVec3::new(0.0, -100.5, -1.0), 100.0)));
 
   // Camera
-  let vfov: f64 = 25.0;
+  let vfov: f64 = 35.0;
   let vup: DVec3 = DVec3::new(0.0, 1.0, 0.0);
   let center: DVec3 = DVec3::new(-1.0, 1.0, 1.0);
   let direction: DVec3 = DVec3::new(0.0, 0.0, -1.0);

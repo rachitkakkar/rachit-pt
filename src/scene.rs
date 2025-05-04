@@ -50,17 +50,20 @@ pub fn generate_random_scene() -> Scene {
   for a in -11..11 {
     for b in -11..11 {
       let choose_mat: f64 = rand::random::<f64>();  // Equivalent to random_double()
-      let center: DVec3 = DVec3::new(a as f64 + 0.9 * rand::random::<f64>(), 0.2, b as f64 + 0.9 * rand::random::<f64>());
+      let center: DVec3 = 
+        DVec3::new(a as f64 + 0.9 * rand::random::<f64>(), 0.2, b as f64 + 0.9 * rand::random::<f64>());
 
       if (center - DVec3::new(4.0, 0.2, 0.0)).length() > 0.9 {
         if choose_mat < 0.8 {
           // Lambertian material (diffuse)
-          let albedo: DVec3 = DVec3::new(rand::random::<f64>(), rand::random::<f64>(), rand::random::<f64>()) * DVec3::new(rand::random::<f64>(), rand::random::<f64>(), rand::random::<f64>());
+          let albedo: DVec3 = DVec3::new(rand::random::<f64>(), rand::random::<f64>(), rand::random::<f64>()) 
+                            * DVec3::new(rand::random::<f64>(), rand::random::<f64>(), rand::random::<f64>());
           objects.push(Box::new(Sphere::new(Lambertian::new(albedo), center, 0.2)));
 
         } else if choose_mat < 0.95 {
           // Metal material
-          let albedo: DVec3 = DVec3::new(rand::random::<f64>(), rand::random::<f64>(), rand::random::<f64>()) * DVec3::new(0.5, 1.0, 0.5);
+          let albedo: DVec3 = DVec3::new(rand::random::<f64>(), rand::random::<f64>(), rand::random::<f64>()) 
+                            * DVec3::new(0.5, 1.0, 0.5);
           let fuzz: f64 = rand::random::<f64>();  // You can control the fuzz range similarly
           objects.push(Box::new(Sphere::new(Metal::new(albedo, fuzz), center, 0.2)));
 

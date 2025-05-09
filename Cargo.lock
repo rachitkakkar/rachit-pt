@@ -314,6 +314,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
 
 [[package]]
+name = "hdrldr"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6cb717c5ebe824622289dc405a0415152ce835d162d43bf05fd902e394d5609"
+
+[[package]]
 name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -653,6 +659,7 @@ name = "pt"
 version = "0.1.0"
 dependencies = [
  "glam",
+ "hdrldr",
  "image",
  "indicatif",
  "rand 0.9.0",

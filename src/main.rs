@@ -8,11 +8,10 @@ use image::ImageBuffer;
 // Project modules
 use pt::{ 
   geometries::{Intersection, Object, Ray},
-  scene::{generate_random_scene, Camera, Scene},
+  scene::{generate_random_scene, Camera, Scene, Sky},
 };
 
-// Get the color illuminated by a particular ray given a scene
-fn cast_ray(objects: &Vec<Box<dyn Object>>, ray: &Ray, depth: i32) -> DVec3 {
+fn cast_ray(objects: &Vec<Box<dyn Object>>, sky: &Sky, ray: &Ray, depth: i32) -> DVec3 {
   if depth <= 0 {
     return DVec3::new(0.0, 0.0, 0.0);
   }
@@ -32,11 +31,18 @@ fn cast_ray(objects: &Vec<Box<dyn Object>>, ray: &Ray, depth: i32) -> DVec3 {
     let intersection: Intersection = closest_intersection.unwrap();
     if let Some(scatter) = intersection.material.scatter(ray, intersection) {
       let (scattered, attenuation) = scatter;
-      color += attenuation * cast_ray(objects, &scattered, depth-1);
+      color += attenuation * cast_ray(objects, sky, &scattered, depth-1);
     }
   } else {
-    let a: f64 = 0.5 * (ray.direction.normalize().y + 1.0);
-    color += (1.0-a) * DVec3::new(1.0, 1.0, 1.0) + (a)*DVec3::new(0.5, 0.7, 1.0);
+    // Sky color (using skybox or procedural gradient)
+    match sky {
+      Sky::Gradient => {
+        let a: f64 = 0.5 * (ray.direction.normalize().y + 1.0);
+        color += (1.0 - a) * DVec3::new(1.0, 1.0, 1.0) + (a) * DVec3::new(0.5, 0.7, 1.0);
+      }
+      Sky::HDRSkybox(hdr_image ) => { color += hdr_image.sample(ray.direction); }
+    }
+    
   }
 
   color
@@ -49,13 +55,12 @@ fn main() {
   // Create Image
   println!("[1/4] 📸 Creating image...");
   thread::sleep(time::Duration::from_millis(rand::rng().random::<u64>() % 1000));
-  let dimensions: UVec2 = UVec2::new(1600, 400);
+  let dimensions: UVec2 = UVec2::new(400, 300);
   let mut buffer: ImageBuffer<image::Rgb<u8>, Vec<u8>> = 
     ImageBuffer::new(dimensions.x, dimensions.y);
 
   // Scene
   println!("[2/4] 🔧 Constructing scene...");
-  thread::sleep(time::Duration::from_millis(rand::rng().random::<u64>() % 1000));
   let scene: Scene = generate_random_scene();
 
   // Camera
@@ -69,7 +74,7 @@ fn main() {
   let delta_u: DVec3 = u / dimensions.x as f64;
   let delta_v: DVec3 = v / dimensions.y as f64;
   let upper_left: DVec3 = 
-    (camera.center - (focal_length * w) - u / 2.0 - v / 2.0) 
+    (camera.center - (focal_length * w) - u / 2.0 - v / 2.0)
     + 0.5 * (delta_u + delta_v);
 
   // Set-up rendering settings
@@ -101,7 +106,7 @@ fn main() {
           pixel_sample  - camera.center
         );
         
-        color += cast_ray(&scene.objects, &ray, max_bounces);
+        color += cast_ray(&scene.objects, &scene.sky, &ray, max_bounces);
       }
       color *= 1.0 / samples as f64;
 

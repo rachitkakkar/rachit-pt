@@ -1,4 +1,6 @@
+use std::fs::File;
 use glam::DVec3;
+use hdrldr::load;
 use crate::{
   geometries::{Object, Sphere},
   materials::{Dielectric, Lambertian, Metal},
@@ -21,15 +23,74 @@ impl Camera {
     }
   }
 }
+pub struct HDRImage {
+  pub width: usize,
+  pub height: usize,
+  pub data: Vec<f32>, // RGB floats
+}
+
+impl HDRImage {
+  pub fn load_from_file(path: &str) -> Self {
+    let file = File::open(path).expect("Failed to open HDR file");
+    let image = load(file).expect("Failed to parse HDR file");
+
+    let mut float_data = Vec::with_capacity(image.data.len() * 3);
+    for pixel in image.data {
+      float_data.push(pixel.r);
+      float_data.push(pixel.g);
+      float_data.push(pixel.b);
+    }
+
+    HDRImage {
+      width: image.width,
+      height: image.height,
+      data: float_data,
+    }
+  }
+}
+
+impl HDRImage {
+  pub fn sample(&self, direction: DVec3) -> DVec3 {
+    let dir = direction.normalize();
+    let u = 0.5 + dir.x.atan2(-dir.z) / (2.0 * std::f64::consts::PI);
+    let v = 0.5 - dir.y.asin() / std::f64::consts::PI;
+
+    let u = u.clamp(0.0, 1.0);
+    let v = v.clamp(0.0, 1.0);
+
+    let x = (u * (self.width as f64 - 1.0)) as usize;
+    let y = (v * (self.height as f64 - 1.0)) as usize;
+
+    let idx = (y * self.width + x) * 3;
+    let linear = DVec3::new(
+      self.data[idx] as f64,
+      self.data[idx + 1] as f64,
+      self.data[idx + 2] as f64,
+    );
+
+    // Gamma correction (sRGB approximation)
+    DVec3::new(
+      linear.x.powf(1.0 / 2.2),
+      linear.y.powf(1.0 / 2.2),
+      linear.z.powf(1.0 / 2.2),
+    )
+  }
+}
+
+pub enum Sky {
+  Gradient,           // Procedural blue sky
+  HDRSkybox(HDRImage) // HDR environment map
+}
 
 pub struct Scene {
   pub camera: Camera,
-  pub objects: Vec<Box<dyn Object>>
+  pub objects: Vec<Box<dyn Object>>,
+  pub sky: Sky,
 }
 
 impl Scene {
-  pub fn new(camera: Camera, objects: Vec<Box<dyn Object>>) -> Self {
-    Scene { camera, objects }
+  pub fn new(camera: Camera, objects: Vec<Box<dyn Object>>, sky: Sky) -> Self {
+    Scene { camera, objects, sky }
   }
 }
 
@@ -85,24 +146,25 @@ pub fn generate_random_scene() -> Scene {
   let material3: Metal = Metal::new(DVec3::new(0.7, 0.6, 0.5), 0.0);
   objects.push(Box::new(Sphere::new(material3, DVec3::new(4.0, 1.0, 0.0), 1.0)));
 
-  Scene::new(camera, objects)
+  let hdr_image = HDRImage::load_from_file("poolbeg_4k.hdr");
+  Scene::new(camera, objects, Sky::HDRSkybox(hdr_image))
 }
 
 // Uhh I don't know what else to name this but this function name is Maxim-approved!!
-pub fn generate_scene_of_three_balls_with_different_materials_viewed_from_a_distance() -> Scene {
+pub fn generate_three_balls() -> Scene {
   let camera: Camera = Camera::new(
-    35.0,
+    85.0,
     DVec3::new(0.0, 1.0, 0.0),
-    DVec3::new(13.0, 2.0, 3.0),
-    DVec3::new(0.0, 0.0, 0.0)
+    DVec3::new(-2.0,2.0, 1.0),
+    DVec3::new(0.0, 0.0, -1.0)
   );
   let mut objects: Vec<Box<dyn Object>> = Vec::new();
 
   objects.push(Box::new(Sphere::new(Lambertian::new(DVec3::new(0.1, 0.2, 0.5)), DVec3::new(0.0, 0.0, -1.2), 0.5)));
   objects.push(Box::new(Sphere::new(Dielectric::new(1.00 / 1.33), DVec3::new(-1.0, 0.0, -1.0), 0.4)));
   objects.push(Box::new(Sphere::new(Dielectric::new(1.5), DVec3::new(-1.0, 0.0, -1.0), 0.5)));
-  objects.push(Box::new(Sphere::new(Metal::new(DVec3::new(0.8, 0.6, 0.2), 0.2), DVec3::new(1.0, 0.0, -1.0), 0.5)));
-  objects.push(Box::new(Sphere::new(Lambertian::new(DVec3::new(0.8, 0.8, 0.0)), DVec3::new(0.0, -100.5, -1.0), 100.0)));
+  objects.push(Box::new(Sphere::new(Metal::new(DVec3::new(0.8, 0.6, 0.2), 0.0), DVec3::new(1.0, 0.0, -1.0), 0.5)));
+  // objects.push(Box::new(Sphere::new(Lambertian::new(DVec3::new(0.8, 0.8, 0.0)), DVec3::new(0.0, -100.5, -1.0), 100.0)));
 
-  Scene::new(camera, objects)
+  Scene::new(camera, objects, Sky::Gradient)
 }

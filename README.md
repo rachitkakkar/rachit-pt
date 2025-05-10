@@ -1,6 +1,7 @@
 # rachit-pt
 A toy rendering engine written Rust. Generates beautiful images of 3D scenes with path tracing.
-![Current Output](output.png)
+
+![Current Output](defocus_blur_4.png)
 
 # Planned Features
 - A multithreaded progressive rendering system

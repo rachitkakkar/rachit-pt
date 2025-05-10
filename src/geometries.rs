@@ -75,7 +75,7 @@ impl<M: Material> Object for Sphere<M> {
       -outward_normal 
     };
 
-    Some( Intersection { 
+    Some(Intersection { 
       location: p, normal: normal, t: t, material: &self.material, front_face: front_face
     })
   }

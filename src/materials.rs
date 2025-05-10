@@ -62,7 +62,7 @@ pub struct Lambertian {
 }
 
 impl Lambertian {
-  pub fn new(albedo: DVec3) -> Lambertian {
+  pub fn new(albedo: DVec3) -> Self {
     Lambertian { albedo }
   }
 }
@@ -94,7 +94,7 @@ pub struct Metal {
 }
 
 impl Metal {
-  pub fn new(albedo: DVec3, fuzz: f64) -> Metal {
+  pub fn new(albedo: DVec3, fuzz: f64) -> Self {
     // Ensure fuzz is between 0.0 and 1.0 for realistic behavior
     let fuzz: f64 = if fuzz < 1.0 { fuzz } else { 1.0 };
     Metal { albedo, fuzz }

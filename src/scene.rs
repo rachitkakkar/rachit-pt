@@ -153,10 +153,9 @@ impl Scene {
   
     let material3: Metal = Metal::new(DVec3::new(0.7, 0.6, 0.5), 0.0);
     objects.push(Box::new(Sphere::new(material3, DVec3::new(4.0, 1.0, 0.0), 1.0)));
-  
-    let hdr_image = HDRImage::load_from_file("assets/poolbeg_4k.hdr");
-    // Scene::new(camera, objects, Sky::HDRSkybox(hdr_image))
-    Scene::new(camera, objects, Sky::Gradient)
+
+    let hdr_image = HDRImage::load_from_file("assets/evening_road_01_puresky_4k.hdr");
+    Scene::new(camera, objects, Sky::HDRSkybox(hdr_image))
   }
 
   // Three spheres in a row with different materials

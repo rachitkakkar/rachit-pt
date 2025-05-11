@@ -93,7 +93,7 @@ fn main() {
   let defocus_disk_v: DVec3 = v * defocus_radius;
 
   // Set-up rendering settings
-  let samples: i32 = 10;
+  let samples: i32 = 1500;
   let max_bounces: i32 = 50;
 
   // Write an image
@@ -117,14 +117,15 @@ fn main() {
           + ((x as f64 + offset.x) * delta_u) 
           + ((y as f64 + offset.y) * delta_v);
 
-        let ray: Ray = Ray::new(
-          if camera.defocus_angle <= 0.0 {
+        let ray_origin: DVec3 = if camera.defocus_angle <= 0.0 {
             camera.center
           } else {
             let in_unit_disk: DVec3 = random_unit_disk_vector();
             camera.center + (in_unit_disk.x * defocus_disk_u) + (in_unit_disk.y * defocus_disk_v)
-          }, 
-          pixel_sample - camera.center
+          };
+        let ray: Ray = Ray::new(
+          ray_origin, 
+          pixel_sample - ray_origin
         );
         
         color += cast_ray(&scene, &ray, max_bounces);
